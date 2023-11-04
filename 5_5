@@ -1,0 +1,290 @@
+//Stage 5.5
+
+import kotlin.random.Random
+import kotlin.random.nextInt
+import kotlin.system.exitProcess
+
+var cardsInHandPlayer = mutableListOf<String>()
+var cardsInHandComputer = mutableListOf<String>()
+var countOfWinCardsPlayer = 0
+var countOfWinCardsComputer = 0
+var scoresPlayer = 0
+var scoresComputer = 0
+var lastWinner = ""//кто выиграл текущую взятку. Если за всю игру никто не выиграл остается пустой
+var whoIsFirst = true //первый играющий: true - игрок false - компьютер
+
+fun main() {
+    chooseWhoIsFirst()
+    PackOfCards.setOfCardsOnTable = doNextSet(4)
+    PackOfCards.theTopCard = PackOfCards.setOfCardsOnTable.last()
+    PackOfCards.countOfCardsIsPlayed = PackOfCards.setOfCardsOnTable.size
+    println("Initial cards on the table: ${PackOfCards.setOfCardsOnTable.joinToString(" ")}")
+    while (PackOfCards.countOfCardsIsPlayed <= 51) {
+        println(
+            if (PackOfCards.setOfCardsOnTable.size == 0) "\nNo cards on the table" else
+                "\n${PackOfCards.setOfCardsOnTable.size} cards on the table, and the top card is ${PackOfCards.theTopCard}"
+        )
+        if (PackOfCards.isPlayerMove) playerPlay() else computerPlay()
+        PackOfCards.isPlayerMove = !PackOfCards.isPlayerMove
+    }
+    finishGame()
+    println(
+        "Score: Player $scoresPlayer - Computer $scoresComputer\n" +
+                "Cards: Player $countOfWinCardsPlayer - Computer $countOfWinCardsComputer\n" +
+                "Game Over"
+    )
+}
+
+//выбор кто ходит первым
+fun chooseWhoIsFirst() {
+    println("Indigo Card Game")
+    while (true) {
+        println("Play first?")
+        when (readln().lowercase()) {
+            "yes" -> {
+                PackOfCards.isPlayerMove = true
+                whoIsFirst = true
+                break
+            }
+            "no" -> {
+                PackOfCards.isPlayerMove = false
+                whoIsFirst = false
+                break
+            }
+            else -> continue
+        }
+    }
+}
+
+//счетчики колоды: карты в колоде, кто ходит, верхняя карта, количество сыгравших карт на столе, состав карт на столе
+object PackOfCards {
+
+    var setOfCards = emptyCards()
+    var isPlayerMove = true
+    var theTopCard = ""
+    var countOfCardsIsPlayed = 0
+    var setOfCardsOnTable = mutableListOf<String>()
+}
+
+//делается целая пустая колода и перемешивается
+fun emptyCards(): MutableList<String> {
+    val ranks = listOf("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K")
+    val suits = listOf("♣", "♥", "♦", "♠")
+    val set = MutableList(52) { "" }
+    var count = 0
+    for (i in suits) {
+        for (j in ranks) {
+            set[count] = "$j$i"
+            count++
+        }
+    }
+    return set.shuffled().toMutableList()
+}
+
+//набор карт (раздача) берется из основной колоды и удаляется из нее
+fun doNextSet(countOfCard: Int): MutableList<String> {
+    val upperCards = PackOfCards.setOfCards.slice(0 until countOfCard).toMutableList()
+    PackOfCards.setOfCards.removeAll(upperCards)
+    return upperCards
+}
+
+//играет игрок
+fun playerPlay() {
+    if (cardsInHandPlayer.size == 0) {
+        cardsInHandPlayer = doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
+    }
+    print("Cards in hand: ")
+    repeat(cardsInHandPlayer.size) {
+        print("${it + 1})${cardsInHandPlayer[it]} ")
+    }
+    println()
+    while (true) {
+        println("Choose a card to play (1-${cardsInHandPlayer.size}):")
+        val input = readln()
+        when {
+            //введенное число совпадает с порядковым номером карт на руках
+            input.matches("[1-${cardsInHandPlayer.size}]".toRegex()) -> {
+                ifWin(cardsInHandPlayer[input.toInt() - 1])//смотрится, выиграла/нет карта. Происходит разный сценарий внутри ifWin()
+                break
+            }
+            //ввел выход - тогда игра заканчивается
+            input == "exit" -> {
+                println("Game Over")
+                exitProcess(0)
+            }
+            //ввел нелигитимные символы или несуществующий номер - сначала
+            else -> continue
+        }
+    }
+}
+
+//играет компьютер
+fun computerPlay() {
+    if (cardsInHandComputer.size == 0) {
+        cardsInHandComputer = doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
+    }
+    repeat(cardsInHandComputer.size) {
+        print("${cardsInHandComputer[it]} ")
+    }
+    println()
+    //карты-кандидаты - те, что выигрывают карту
+    val candidates = cardsInHandComputer.filter { checkTopCardOnTable(it) }.toMutableList()
+    val plaingCard = if (candidates.isNotEmpty()) candidateCard(candidates) else notCandidateCard()
+    println("Computer plays $plaingCard")
+    ifWin(plaingCard)
+}
+
+//функция по отбору компьютером карты - кандидата
+fun candidateCard(cards: MutableList<String>): String {
+    if (cards.size == 1) {
+        return cards[0]
+    } else {
+       return cards.chooseCardCandidate(PackOfCards.theTopCard)
+    }
+}
+
+//функция по выбору карты, которая не является кандидатом
+fun notCandidateCard(): String {
+    if (cardsInHandComputer.size == 1) {
+        return cardsInHandComputer[0]
+    } else {
+        val setOfCards = mutableSetOf<String>()
+        for (card in cardsInHandComputer) {
+            val listOfSuit = cardsInHandComputer.checkCardInList(card.substring(card.length - 1))
+            if (listOfSuit.size > 1) setOfCards.addAll(listOfSuit)
+        }
+        if (setOfCards.size > 1) return setOfCards.toList()[Random.nextInt(0 until setOfCards.size)]
+        setOfCards.clear()
+        for (card in cardsInHandComputer) {
+            val listOfRank = cardsInHandComputer.checkCardInList(card.substring(0, card.length - 1))
+            if (listOfRank.size > 1) setOfCards.addAll(listOfRank)
+        }
+        if (setOfCards.size > 1) return setOfCards.toList()[Random.nextInt(0 until setOfCards.size)]
+        return cardsInHandComputer[Random.nextInt(0 until cardsInHandComputer.size)]
+    }
+}
+
+//extention функция для фильтрации нужной карты по условию: 1)выбор среди нескольких карт одной масти. Если нет 2)одного ранга. нет - любую
+fun MutableList<String>.chooseCardCandidate(card: String): String {
+    val rank = card.substring(0, card.length - 1)
+    val suit = card.substring(card.length - 1)
+    val suitCards = this.checkCardInList(suit)
+    val rankCards = this.checkCardInList(rank)
+    return when {
+        suitCards.size > 1 -> suitCards[Random.nextInt(0 until suitCards.size)]
+        rankCards.size > 1 -> rankCards[Random.nextInt(0 until rankCards.size)]
+        else -> this[Random.nextInt(0 until this.size)]
+    }
+}
+
+//extention функция, проверяет содержит ли mutableList переданную масть или ранг
+fun MutableList<String>.checkCardInList(suitOrRank: String): MutableList<String> =
+    this.filter { it.contains(suitOrRank) }.toMutableList()
+
+//общая логика при ходе картой (выигрыш или нет)
+fun ifWin(card: String) {
+    val isWin = checkTopCardOnTable(card)
+    PackOfCards.countOfCardsIsPlayed += 1 //карта выбрасывается на стол и счетчик сыгравших карт увеличивается
+    PackOfCards.setOfCardsOnTable.add(card)
+    if (!isWin) {
+        if (PackOfCards.isPlayerMove) {
+            cardsInHandPlayer.remove(card)
+        } else {
+            cardsInHandComputer.remove(card)
+        }
+        PackOfCards.theTopCard = card
+    } else {
+        if (PackOfCards.isPlayerMove) {
+            cardsInHandPlayer.remove(card) // карта удаляется из рук
+            playerWin()
+        } else {
+            cardsInHandComputer.remove(card)// карта удаляется из рук
+            computerWin()
+        }
+        PackOfCards.theTopCard = ""
+        PackOfCards.setOfCardsOnTable.clear()
+    }
+}
+
+// что происходит если выиграл игрок
+fun playerWin() {
+    countOfWinCardsPlayer += PackOfCards.setOfCardsOnTable.size
+    scoresPlayer += countPointsInHand(PackOfCards.setOfCardsOnTable)
+    lastWinner = "player"
+    println(
+        "Player wins cards\n" +
+                "Score: Player $scoresPlayer - Computer $scoresComputer\n" +
+                "Cards: Player $countOfWinCardsPlayer - Computer $countOfWinCardsComputer"
+    )
+}
+
+// что происходит если выиграл компьютер
+fun computerWin() {
+    countOfWinCardsComputer += PackOfCards.setOfCardsOnTable.size
+    scoresComputer += countPointsInHand(PackOfCards.setOfCardsOnTable)
+    lastWinner = "computer"
+    println(
+        "Computer wins cards\n" +
+                "Score: Player $scoresPlayer - Computer $scoresComputer\n" +
+                "Cards: Player $countOfWinCardsPlayer - Computer $countOfWinCardsComputer"
+    )
+}
+
+//подсчет сколько очков взято
+fun countPointsInHand(cards: List<String>): Int {
+    val listOfChars = listOf("A", "10", "J", "Q", "K")
+    var sum = 0
+    for (card in cards) {
+        for (char in listOfChars) {
+            if (card.contains(char)) sum += 1
+        }
+    }
+    return sum
+}
+
+//проверка совпадает ли карта которой ходят по масти или рангу с той которая на столе
+fun checkTopCardOnTable(cardOfPlayer: String): Boolean {
+    val rank = cardOfPlayer.substring(0, cardOfPlayer.length - 1)
+    val suit = cardOfPlayer.substring(cardOfPlayer.length - 1)
+    return PackOfCards.theTopCard.contains(rank) || PackOfCards.theTopCard.contains(suit)
+}
+
+//расчет дополнительных очков и карт в конце партии
+fun calculateExtraScores(): Array<Int> {
+    var extraScores = 3
+    var extraNumberOfCards = 0
+    if (PackOfCards.setOfCardsOnTable.size == 0) {
+        println("\nNo cards on the table")
+    } else {
+        println(
+            "\n${PackOfCards.setOfCardsOnTable.size} cards on the table, and the top card is ${PackOfCards.theTopCard}"
+        )
+        extraScores += countPointsInHand(PackOfCards.setOfCardsOnTable)
+        extraNumberOfCards += PackOfCards.setOfCardsOnTable.size
+    }
+    return arrayOf(extraScores, extraNumberOfCards)
+}
+
+//кому достались дополнительные карты и очки
+fun finishGame() {
+    val extra = calculateExtraScores()
+    when {
+        lastWinner == "player" -> {
+            countOfWinCardsPlayer += extra[1]
+            scoresPlayer += extra[0]
+        }
+        lastWinner == "computer" -> {
+            countOfWinCardsComputer += extra[1]
+            scoresComputer += extra[0]
+        }
+        whoIsFirst -> {
+            countOfWinCardsPlayer += extra[1]
+            scoresPlayer += extra[0]
+        }
+        !whoIsFirst -> {
+            countOfWinCardsComputer += extra[1]
+            scoresComputer += extra[0]
+        }
+    }
+    PackOfCards.setOfCardsOnTable.clear()
+}
