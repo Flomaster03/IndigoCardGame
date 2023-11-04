@@ -1,0 +1,115 @@
+//Stage 3.5
+
+import kotlin.random.Random
+import kotlin.random.nextInt
+import kotlin.system.exitProcess
+
+var countOfCardsInHandPlayer = 0
+var countOfCardsInHandComputer = 0
+var cardsInHandPlayer = mutableListOf<String>()
+var cardsInHandComputer = mutableListOf<String>()
+
+fun main() {
+    chooseWhoIsFirst()
+    val cardsBeforeRounds = doNextSet(4)
+    PackOfCards.theTopCard = cardsBeforeRounds.last()
+    PackOfCards.countOfCardsOnTable = 4
+    println("Initial cards on the table: ${cardsBeforeRounds.joinToString(" ")}\n")
+    while(PackOfCards.countOfCardsOnTable <= 51) {
+        if(PackOfCards.isPlayerMove) playerPlay() else computerPlay()
+        PackOfCards.isPlayerMove = !PackOfCards.isPlayerMove
+    }
+    println("52 cards on the table, and the top card is ${PackOfCards.theTopCard}\nGame Over")
+}
+
+fun chooseWhoIsFirst() {
+    println("Indigo Card Game")
+    while (true) {
+        println("Play first?")
+        when (readln().lowercase()) {
+            "yes" -> {
+                PackOfCards.isPlayerMove = true
+                break
+            }
+            "no" -> {
+                PackOfCards.isPlayerMove = false
+                break
+            }
+            else -> continue
+        }
+    }
+}
+
+object PackOfCards {
+
+    var setOfCards = emptyCards()
+    var isPlayerMove = true
+    var theTopCard = ""
+    var countOfCardsOnTable = 0
+}
+
+fun emptyCards(): MutableList<String> {
+    val ranks = listOf("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K")
+    val suits = listOf("♣", "♥", "♦",  "♠")
+    val set = MutableList(52) { "" }
+    var count = 0
+    for (i in suits) {
+        for (j in ranks) {
+            set[count] = "$j$i"
+            count++
+        }
+    }
+    return set.shuffled().toMutableList()
+}
+
+fun doNextSet(countOfCard: Int): MutableList<String> {
+    val upperCards = PackOfCards.setOfCards.slice(0 until countOfCard).toMutableList()
+    PackOfCards.setOfCards.removeAll(upperCards)
+    return upperCards
+}
+
+fun playerPlay() {
+    println("${PackOfCards.countOfCardsOnTable} cards on the table, and the top card is ${PackOfCards.theTopCard}")
+    if (countOfCardsInHandPlayer == 0) {
+        cardsInHandPlayer = doNextSet(6)
+        countOfCardsInHandPlayer = cardsInHandPlayer.size
+    }
+    print("Cards in hand: ")
+    repeat(countOfCardsInHandPlayer) {
+        print("${it + 1})${cardsInHandPlayer[it]} ")
+    }
+    println()
+    while(true) {
+        println("Choose a card to play (1-$countOfCardsInHandPlayer):")
+        val input = readln()
+        when {
+            input.matches("[1-$countOfCardsInHandPlayer]".toRegex()) -> {
+                PackOfCards.theTopCard = cardsInHandPlayer[input.toInt() - 1]
+                cardsInHandPlayer.removeAt(input.toInt() - 1)
+                countOfCardsInHandPlayer -= 1
+                PackOfCards.countOfCardsOnTable += 1
+                println()
+                break
+            }
+            input == "exit" -> {
+                println("Game Over")
+                exitProcess(0)
+            }
+            else -> continue
+        }
+    }
+}
+
+fun computerPlay() {
+    println("${PackOfCards.countOfCardsOnTable} cards on the table, and the top card is ${PackOfCards.theTopCard}")
+    if (countOfCardsInHandComputer == 0) {
+        cardsInHandComputer = doNextSet(6)
+        countOfCardsInHandComputer = cardsInHandComputer.size
+    }
+    val randomNumber = Random.nextInt(0 until countOfCardsInHandComputer)
+    PackOfCards.theTopCard = cardsInHandComputer[randomNumber]
+    cardsInHandComputer.removeAt(randomNumber)
+    countOfCardsInHandComputer -= 1
+    PackOfCards.countOfCardsOnTable += 1
+    println("Computer plays ${PackOfCards.theTopCard}\n")
+}
