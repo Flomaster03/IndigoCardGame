@@ -1,3 +1,5 @@
+package indigo
+
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.system.exitProcess
@@ -44,11 +46,13 @@ fun chooseWhoIsFirst() {
                 whoIsFirst = true
                 break
             }
+
             "no" -> {
                 PackOfCards.isPlayerMove = false
                 whoIsFirst = false
                 break
             }
+
             else -> continue
         }
     }
@@ -88,10 +92,9 @@ fun doNextSet(countOfCard: Int): MutableList<String> {
 
 //играет игрок
 fun playerPlay() {
-    if (cardsInHandPlayer.size == 0) {
-        cardsInHandPlayer = doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
-    }
-    print("Cards in hand: ")
+    if (cardsInHandPlayer.size == 0) cardsInHandPlayer =
+        doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
+    print("Cards in hand: ")             //печать карт игрока
     repeat(cardsInHandPlayer.size) {
         print("${it + 1})${cardsInHandPlayer[it]} ")
     }
@@ -118,9 +121,8 @@ fun playerPlay() {
 
 //играет компьютер
 fun computerPlay() {
-    if (cardsInHandComputer.size == 0) {
-        cardsInHandComputer = doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
-    }
+    if (cardsInHandComputer.size == 0) cardsInHandComputer =
+        doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
     val randomNumber = Random.nextInt(0 until cardsInHandComputer.size)
     println("Computer plays ${cardsInHandComputer[randomNumber]}")
     //реализовывается логика ifWin - если randomNumber совпадает с верхней картой, то выигрыш, нет - карта наверх
@@ -129,8 +131,8 @@ fun computerPlay() {
 
 //общая логика при ходе картой (выигрыш или нет)
 fun ifWin(card: String) {
-    val isWin = checkTopCardOnTable(card)
     PackOfCards.countOfCardsIsPlayed += 1 //карта выбрасывается на стол и счетчик сыгравших карт увеличивается
+    val isWin = checkTopCardOnTable(card)
     PackOfCards.setOfCardsOnTable.add(card)
     if (!isWin) {
         if (PackOfCards.isPlayerMove) {
@@ -215,22 +217,12 @@ fun calculateExtraScores(): Array<Int> {
 fun finishGame() {
     val extra = calculateExtraScores()
     when {
-        lastWinner == "player" -> {
-            countOfWinCardsPlayer += extra[1]
-            scoresPlayer += extra[0]
-        }
-        lastWinner == "computer" -> {
-            countOfWinCardsComputer += extra[1]
-            scoresComputer += extra[0]
-        }
-        whoIsFirst -> {
-            countOfWinCardsPlayer += extra[1]
-            scoresPlayer += extra[0]
-        }
-        !whoIsFirst -> {
-            countOfWinCardsComputer += extra[1]
-            scoresComputer += extra[0]
-        }
+        lastWinner == "player" -> countOfWinCardsPlayer += extra[1]
+        lastWinner == "computer" -> countOfWinCardsComputer += extra[1]
+        whoIsFirst -> countOfWinCardsPlayer += extra[1]
+        !whoIsFirst -> countOfWinCardsComputer += extra[1]
+
     }
+    if (countOfWinCardsComputer < countOfWinCardsPlayer) scoresPlayer += extra[0] else scoresComputer += extra[0]
     PackOfCards.setOfCardsOnTable.clear()
 }
