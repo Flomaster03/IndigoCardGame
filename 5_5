@@ -1,4 +1,4 @@
-//Stage 5.5
+package indigo
 
 import kotlin.random.Random
 import kotlin.random.nextInt
@@ -46,11 +46,13 @@ fun chooseWhoIsFirst() {
                 whoIsFirst = true
                 break
             }
+
             "no" -> {
                 PackOfCards.isPlayerMove = false
                 whoIsFirst = false
                 break
             }
+
             else -> continue
         }
     }
@@ -90,9 +92,8 @@ fun doNextSet(countOfCard: Int): MutableList<String> {
 
 //играет игрок
 fun playerPlay() {
-    if (cardsInHandPlayer.size == 0) {
-        cardsInHandPlayer = doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
-    }
+    if (cardsInHandPlayer.size == 0) cardsInHandPlayer =
+        doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
     print("Cards in hand: ")
     repeat(cardsInHandPlayer.size) {
         print("${it + 1})${cardsInHandPlayer[it]} ")
@@ -120,9 +121,8 @@ fun playerPlay() {
 
 //играет компьютер
 fun computerPlay() {
-    if (cardsInHandComputer.size == 0) {
-        cardsInHandComputer = doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
-    }
+    if (cardsInHandComputer.size == 0) cardsInHandComputer =
+        doNextSet(6) //если карт на руках нет, происходит раздача 6 карт
     repeat(cardsInHandComputer.size) {
         print("${cardsInHandComputer[it]} ")
     }
@@ -136,10 +136,10 @@ fun computerPlay() {
 
 //функция по отбору компьютером карты - кандидата
 fun candidateCard(cards: MutableList<String>): String {
-    if (cards.size == 1) {
-        return cards[0]
+    return if (cards.size == 1) {
+        cards[0]
     } else {
-       return cards.chooseCardCandidate(PackOfCards.theTopCard)
+        cards.chooseCardCandidate(PackOfCards.theTopCard)
     }
 }
 
@@ -187,11 +187,7 @@ fun ifWin(card: String) {
     PackOfCards.countOfCardsIsPlayed += 1 //карта выбрасывается на стол и счетчик сыгравших карт увеличивается
     PackOfCards.setOfCardsOnTable.add(card)
     if (!isWin) {
-        if (PackOfCards.isPlayerMove) {
-            cardsInHandPlayer.remove(card)
-        } else {
-            cardsInHandComputer.remove(card)
-        }
+        if (PackOfCards.isPlayerMove) cardsInHandPlayer.remove(card) else cardsInHandComputer.remove(card)
         PackOfCards.theTopCard = card
     } else {
         if (PackOfCards.isPlayerMove) {
@@ -253,16 +249,15 @@ fun checkTopCardOnTable(cardOfPlayer: String): Boolean {
 fun calculateExtraScores(): Array<Int> {
     var extraScores = 3
     var extraNumberOfCards = 0
-    if (PackOfCards.setOfCardsOnTable.size == 0) {
+    var extraCardScores = 0
+        if (PackOfCards.setOfCardsOnTable.size == 0) {
         println("\nNo cards on the table")
     } else {
-        println(
-            "\n${PackOfCards.setOfCardsOnTable.size} cards on the table, and the top card is ${PackOfCards.theTopCard}"
-        )
-        extraScores += countPointsInHand(PackOfCards.setOfCardsOnTable)
+        println("\n${PackOfCards.setOfCardsOnTable.size} cards on the table, and the top card is ${PackOfCards.theTopCard}")
+        extraCardScores = countPointsInHand(PackOfCards.setOfCardsOnTable)
         extraNumberOfCards += PackOfCards.setOfCardsOnTable.size
     }
-    return arrayOf(extraScores, extraNumberOfCards)
+    return arrayOf(extraScores, extraNumberOfCards, extraCardScores)
 }
 
 //кому достались дополнительные карты и очки
@@ -271,20 +266,22 @@ fun finishGame() {
     when {
         lastWinner == "player" -> {
             countOfWinCardsPlayer += extra[1]
-            scoresPlayer += extra[0]
+            scoresPlayer += extra[2]
         }
         lastWinner == "computer" -> {
             countOfWinCardsComputer += extra[1]
-            scoresComputer += extra[0]
+            scoresComputer += extra[2]
         }
         whoIsFirst -> {
             countOfWinCardsPlayer += extra[1]
-            scoresPlayer += extra[0]
+            scoresPlayer += extra[2]
         }
         !whoIsFirst -> {
             countOfWinCardsComputer += extra[1]
-            scoresComputer += extra[0]
+            scoresComputer += extra[2]
         }
+
     }
+    if (countOfWinCardsComputer < countOfWinCardsPlayer) scoresPlayer += extra[0] else scoresComputer += extra[0]
     PackOfCards.setOfCardsOnTable.clear()
 }
